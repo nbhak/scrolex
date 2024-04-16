@@ -1,8 +1,34 @@
 use clap::Parser;
 
-mod watch {
+mod terminal {
     use std::process::Command;
+    use std::io::{self, Write};
+
+    pub fn execute(cmd: &str) {
+        let output: std::process::Output = Command::new("sh")
+                    .arg("-c")
+                    .arg(cmd)
+                    .output()
+                    .expect("Failed to execute command");
+
+        // Check and print stdout and stderr
+        if !output.stdout.is_empty() {
+            println!("{}", String::from_utf8_lossy(&output.stdout));
+        }
+        if !output.stderr.is_empty() {
+            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+        }
+    }
+
+    pub fn clear() {
+        print!("\x1B[2J\x1B[1;1H");
+        io::stdout().flush().expect("Failed to flush stdout");
+    }
+}
+
+mod watch {
     use std::{thread, time};
+    use crate::terminal;
 
     pub struct Watch {
         pub cmd: String,
@@ -15,23 +41,9 @@ mod watch {
         }
         pub fn run(&self) {
             loop {
-                // Command execution directly outputs the 'Output' object after '.expect()'
-                let output = Command::new("sh")
-                    .arg("-c")
-                    .arg(&self.cmd)
-                    .output()
-                    .expect("Failed to execute command");
-
-                // Check and print stdout and stderr
-                if !output.stdout.is_empty() {
-                    println!("{}", String::from_utf8_lossy(&output.stdout));
-                }
-                if !output.stderr.is_empty() {
-                    eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-                }
-
-                // Sleep for the specified interval
+                terminal::execute(&self.cmd);
                 thread::sleep(time::Duration::from_millis(self.interval as u64));
+                terminal::clear();
             }
         }
     }
